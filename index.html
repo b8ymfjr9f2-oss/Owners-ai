@@ -52,6 +52,7 @@ header p{
   border-radius:16px;
   max-width:85%;
   line-height:1.4;
+  white-space:pre-wrap;
 }
 
 .bot{
@@ -103,31 +104,30 @@ button{
 </header>
 
 <div id="chat">
-
 <div class="msg bot">
 Hello! 👋<br>
 I am Owners AI.<br>
 How can I help you?
 </div>
-
 </div>
 
 <div class="input">
-
 <input
 id="text"
 placeholder="Ask Owners AI..."
 onkeydown="if(event.key==='Enter') send()">
 
 <button onclick="send()">➤</button>
-
 </div>
 
 </div>
 
 <script>
 
-function send(){
+const API_URL =
+"https://onwers-ai.h9v49c4njk.workers.dev/";
+
+async function send(){
 
 const input=document.getElementById("text");
 const text=input.value.trim();
@@ -141,11 +141,60 @@ chat.innerHTML +=
 
 input.value="";
 
+const loading=document.createElement("div");
+loading.className="msg bot";
+loading.textContent="Thinking... 🤔";
+chat.appendChild(loading);
+
+chat.scrollTop=chat.scrollHeight;
+
+try{
+
+const response=await fetch(API_URL,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+messages:[
+{
+role:"system",
+content:"You are Owners AI, a helpful personal AI assistant."
+},
+{
+role:"user",
+content:text
+}
+]
+})
+});
+
+const data=await response.json();
+
+loading.remove();
+
+if(!response.ok){
+throw new Error(data.error || "API error");
+}
+
+const reply =
+data.choices?.[0]?.message?.content ||
+"No response received.";
+
+chat.innerHTML +=
+`<div class="msg bot">${escapeHtml(reply)}</div>`;
+
+}catch(error){
+
+loading.remove();
+
 chat.innerHTML +=
 `<div class="msg bot">
-I received your message 👋<br><br>
-Real AI will be connected in the next step.
+Sorry, AI connection failed. 😕<br>
+${escapeHtml(error.message)}
 </div>`;
+
+}
 
 chat.scrollTop=chat.scrollHeight;
 
@@ -154,6 +203,7 @@ chat.scrollTop=chat.scrollHeight;
 function escapeHtml(text){
 
 return text.replace(/[&<>"']/g,function(m){
+
 return {
 "&":"&amp;",
 "<":"&lt;",
@@ -161,6 +211,7 @@ return {
 '"':"&quot;",
 "'":"&#039;"
 }[m];
+
 });
 
 }
